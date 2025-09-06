@@ -16,7 +16,26 @@ def extraxt(source):
     value = extraxtor.extract(source)["tours"];
     return value;
 
+def send_email():
+    print("Send email");
+
+def store(extracted):
+    with open("data.txt", "a") as file:
+        file.write(extracted + "\n");
+
+def read(extracted):
+    try:
+        with open("data.txt", "r") as file:
+            return file.read()
+    except FileNotFoundError:
+        return ""
+
 if __name__ == "__main__":
     scraped = scrape(URL);
     extracted = extraxt(scraped);
+    content = read(extracted);
+
+    if extracted not in content:
+        store(extracted)
+        send_email()
     print(extracted);
