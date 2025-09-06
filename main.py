@@ -11,5 +11,12 @@ def scrape(url):
     source = response.text;
     return source;
 
+def extraxt(source):
+    extraxtor = selectorlib.Extractor.from_yaml_file("extraxt.yaml");
+    value = extraxtor.extract(source)["tours"];
+    return value;
+
 if __name__ == "__main__":
-    print(scrape(URL));
+    scraped = scrape(URL);
+    extracted = extraxt(scraped);
+    print(extracted);
