@@ -3,6 +3,7 @@ import selectorlib
 import smtplib, ssl
 import os
 from dotenv import load_dotenv
+import time
 
 URL = "https://programmer100.pythonanywhere.com/tours/";
 HEADERS = {
@@ -47,12 +48,13 @@ def read(extracted):
     except FileNotFoundError:
         return ""
 
-if __name__ == "__main__":
-    scraped = scrape(URL);
-    extracted = extraxt(scraped);
-    content = read(extracted);
+while True:
+    if __name__ == "__main__":
+        scraped = scrape(URL);
+        extracted = extraxt(scraped);
+        content = read(extracted);
 
-    if extracted not in content:
-        store(extracted)
-        send_email(message="New event found boy")
-    print(extracted);
+        if extracted not in content:
+            store(extracted)
+            send_email(message="New event found boy")
+        time.sleep(2);
