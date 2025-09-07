@@ -1,9 +1,11 @@
 import requests
 import selectorlib
-import smtplib, ssl
+import smtplib
 import os
 from dotenv import load_dotenv
 import time
+import sqlite3
+from email.message import EmailMessage
 
 URL = "https://programmer100.pythonanywhere.com/tours/";
 HEADERS = {
@@ -12,6 +14,8 @@ HEADERS = {
 load_dotenv();
 
 api_key = os.getenv("API_KEY");
+
+connection = sqlite3.connect("data.db");
 
 def scrape(url):
     response = requests.get(url, headers=HEADERS);
@@ -23,38 +27,60 @@ def extraxt(source):
     value = extraxtor.extract(source)["tours"];
     return value;
 
-def send_email(message):
-    host = "smtp.gmail.com";
-    port = 465;
+def send_email(extracted):
+    email_message = EmailMessage()
+    email_message["subject"] = "New tour event detected!"
+    email_message["From"] = "tihomirtx88@gmail.com"
+    email_message["To"] = "tihomirtx88@gmail.com"
 
-    username = "tihpmirtx88@gmail.com";
-    password = api_key;
+    if extracted == "No upcoming tours":
+        email_message.set_content("No upcoming tours found.")
+    else:
+        # You can include the band, city, date in the email
+        email_message.set_content(f"New tour event found:\n{extracted}")
 
-    receiver = "tihpmirtx88@gmail.com"
-    context = ssl.create_default_context();
-
-    with smtplib.SMTP_SSL(host, port, context=context) as server:
-        server.login(username, password)
-        server.sendmail(username, receiver, message)
+    # Use starttls() for port 587
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.ehlo()
+        server.starttls()
+        server.login("tihomirtx88@gmail.com", api_key)  # app password
+        server.send_message(email_message)
+        print("✅ Email sent successfully!")
 
 def store(extracted):
-    with open("data.txt", "a") as file:
-        file.write(extracted + "\n");
+    row = extracted.split(",")
+    row = [item.strip() for item in row];
+
+    cursor = connection.cursor();
+    cursor.execute("INSERT INTO events VALUES(?,?,?)", row);
+    connection.commit();
 
 def read(extracted):
-    try:
-        with open("data.txt", "r") as file:
-            return file.read()
-    except FileNotFoundError:
-        return ""
+    if extracted == "No upcoming tours":
+        return []
+
+    row = extracted.split(",")
+    row = [item.strip() for item in row]
+
+    if len(row) != 3:
+        return []
+
+    band, city, date = row
+
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM events WHERE band=? AND city=? AND date=?", (band, city, date,))
+    rows = cursor.fetchall()
+    return rows
 
 while True:
     if __name__ == "__main__":
         scraped = scrape(URL);
         extracted = extraxt(scraped);
-        content = read(extracted);
 
-        if extracted not in content:
-            store(extracted)
-            send_email(message="New event found boy")
+        if extracted != "No upcoming tours":
+            row = read(extracted);
+            if not row:
+                store(extracted);
+                send_email(extracted)
+
         time.sleep(2);
